@@ -6,13 +6,13 @@ Dashboard web interactivo que unifica **datos de salud pública de fuentes ofici
 
 **Demo en vivo:** [salud-global-dashboard.onrender.com](https://salud-global-dashboard.onrender.com/) · [Documentación de la API](https://salud-global-dashboard.onrender.com/api/docs)
 
-![Demo del dashboard](docs/demo/demo.gif)
+![Demo del dashboard](salud-global-dashboard/docs/demo/demo.gif)
 
 ## ✨ Qué demuestra este proyecto
 
 - **Backend de API tipada** con FastAPI y Pydantic: validación de parámetros, documentación automática (`/api/docs`) y endpoint de salud (`/health`).
 - **Integración y normalización de datos externos**: CSV de la OMS, APIs de Our World in Data, Banco Mundial y disease.sh, con **caché en memoria** (TTL configurable) para no saturar las fuentes.
-- **Pipeline de datos propio** (`scripts/build_mexico.py`): procesa microdatos de defunciones de la DGIS (millones de registros) y genera un JSON compacto por estado, mes y causa.
+- **Pipeline de datos propio** (`salud-global-dashboard/scripts/build_mexico.py`): procesa microdatos de defunciones de la DGIS y genera un JSON compacto por estado, mes y causa.
 - **Frontend ligero sin frameworks**: JavaScript vanilla, gráficas con Chart.js, tablas con búsqueda, **interfaz bilingüe (ES/EN)** y **tema claro/oscuro**.
 - **Buenas prácticas de producción**: cabeceras de seguridad, configuración por variables de entorno, contenedor Docker con usuario no root y *healthcheck*, pruebas automatizadas.
 
@@ -31,50 +31,50 @@ Dashboard web interactivo que unifica **datos de salud pública de fuentes ofici
 ### COVID-19 a nivel mundial
 KPIs (casos, muertes, letalidad), serie diaria con promedio móvil de 7 días y ranking de países con bandera, casos, muertes y casos por millón.
 
-![COVID-19 mundial con ranking de países](docs/screenshots/01-covid-mundo.png)
+![COVID-19 mundial con ranking de países](salud-global-dashboard/docs/screenshots/01-covid-mundo.png)
 
 Detalle interactivo: al pasar el cursor se muestra el valor diario y el promedio de 7 días.
 
-![Gráfica de COVID-19 con tooltip](docs/screenshots/02-covid-grafica.png)
+![Gráfica de COVID-19 con tooltip](salud-global-dashboard/docs/screenshots/02-covid-grafica.png)
 
 ### Selección de causa y región
 Selector agrupado por fuente: COVID-19, México (Secretaría de Salud/INEGI) y Mundo (OMS, ONU, Banco Mundial). La región permite elegir entre todos los países.
 
 | Causas de México | Causas mundiales | Selector de región |
 |---|---|---|
-| ![Causas de México](docs/screenshots/03-selector-causas-mexico.png) | ![Causas mundiales](docs/screenshots/04-selector-causas-mundo.png) | ![Selector de región](docs/screenshots/05-selector-region.png) |
+| ![Causas de México](salud-global-dashboard/docs/screenshots/03-selector-causas-mexico.png) | ![Causas mundiales](salud-global-dashboard/docs/screenshots/04-selector-causas-mundo.png) | ![Selector de región](salud-global-dashboard/docs/screenshots/05-selector-region.png) |
 
 ### México por estado y mes
 Ejemplo: suicidio en Ciudad de México durante 2024, con muertes del periodo, tasa anual por 100 mil habitantes y cambio frente al periodo anterior.
 
-![Suicidio en CDMX por mes](docs/screenshots/06-mexico-suicidio-cdmx.png)
+![Suicidio en CDMX por mes](salud-global-dashboard/docs/screenshots/06-mexico-suicidio-cdmx.png)
 
 Ranking de todos los estados con muertes, tasa y variación porcentual, más las fuentes citadas al pie.
 
-![Tabla de estados de México](docs/screenshots/07-mexico-tabla-estados.png)
+![Tabla de estados de México](salud-global-dashboard/docs/screenshots/07-mexico-tabla-estados.png)
 
 ## 🧱 Arquitectura
 
-```
-Navegador (HTML + JS vanilla + Chart.js)
-        │  fetch /api/*
-        ▼
-FastAPI (app/main.py) ── caché TTL ──► OMS · OWID · Banco Mundial · disease.sh
-        │
-        └── app/static/mexico.json  (generado offline con scripts/build_mexico.py)
+```mermaid
+flowchart LR
+    U["Usuario"] --> B["Navegador<br/>HTML · JavaScript · Bootstrap · Chart.js"]
+    B -->|"HTTP /api/*"| API["FastAPI<br/>salud-global-dashboard/app/main.py"]
+    API --> CACHE["Caché en memoria<br/>TTL configurable"]
+    CACHE --> WHO["OMS"]
+    CACHE --> OWID["Our World in Data"]
+    CACHE --> WB["Banco Mundial"]
+    CACHE --> DS["disease.sh"]
+    API --> MX["Datos locales<br/>mexico.json"]
+    SCRIPT["build_mexico.py<br/>procesamiento offline"] --> MX
+    DGIS["Microdatos DGIS"] --> SCRIPT
 ```
 
-```
-app/            API FastAPI y archivos estáticos (index.html, app.js, style.css, mexico.json)
-scripts/        build_mexico.py: genera mexico.json desde los microdatos de la DGIS
-tests/          pruebas con pytest
-docs/           capturas (screenshots/) y demo (demo/)
-Dockerfile      imagen lista para desplegar
-```
+El código de la aplicación, las pruebas, el Dockerfile y los recursos visuales están dentro de `salud-global-dashboard/`; este README está en la raíz del repositorio.
 
 ## 🚀 Ejecutar en local
 
 ```bash
+cd salud-global-dashboard
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
@@ -85,7 +85,7 @@ uvicorn app.main:app --reload    # http://localhost:8000 · docs: /api/docs
 Con Docker:
 
 ```bash
-docker build -t salud-global-dashboard .
+docker build -t salud-global-dashboard salud-global-dashboard
 docker run -p 8000:8000 salud-global-dashboard
 ```
 
@@ -99,9 +99,10 @@ Documentación interactiva (Swagger) en `/api/docs`.
 
 ## 🇲🇽 Datos de México
 
-`app/static/mexico.json` se genera con los microdatos de defunciones (archivos `DEFUN_AAAA.zip` de la DGIS). Cuando se publique un año nuevo, agrégalo en `FILES` y ejecuta:
+`salud-global-dashboard/app/static/mexico.json` se genera con los microdatos de defunciones (archivos `DEFUN_AAAA.zip` de la DGIS). Cuando se publique un año nuevo, agrégalo en `FILES` en `salud-global-dashboard/scripts/build_mexico.py` y ejecuta desde la carpeta de la aplicación:
 
 ```bash
+cd salud-global-dashboard
 python scripts/build_mexico.py
 ```
 
